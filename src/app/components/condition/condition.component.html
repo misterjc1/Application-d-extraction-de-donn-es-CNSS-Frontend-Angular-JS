@@ -1,0 +1,102 @@
+<!-- Fenêtre modale de filtrage -->
+<div class="filter-modal">
+  <div class="modal-content">
+
+    <!-- En-tête de la modale avec le titre et le bouton de fermeture -->
+    <div class="modal-header">
+      <h3>Filtrer les données</h3>
+      <button (click)="close()" class="close-btn">&times;</button>
+    </div>
+    
+    <div class="modal-body">
+      
+      <!-- Section pour saisir le nom du filtre -->
+      <div class="filter-section">
+        <label for="filterName">Nom du filtre:</label>
+        <input type="text" id="filterName" [(ngModel)]="filterName" class="form-control">
+      </div>
+      
+      <div class="filter-content">
+
+        <!-- Constructeur de conditions -->
+        <div class="condition-builder">
+          <div class="condition-row">
+            
+            <!-- Sélection de la table -->
+             
+            <label>Table:</label>
+            <div class="input-group table-selection">
+              <select [(ngModel)]="selectedTableName" (change)="onTableSelect()" class="form-control">
+                <option value="">-- Sélectionner une table --</option>
+                <!-- Liste des tables disponibles -->
+                <option *ngFor="let table of tables" [value]="table.tableName">
+                  {{ table.remarks || table.tableName }}
+                </option>
+              </select>
+            </div>
+            
+            <!-- Sélection de la colonne -->
+            <label>Colonne:</label>
+            <div class="input-group">
+              <select [(ngModel)]="newCondition.field" class="form-control" [disabled]="!selectedTableName">
+                <option value="">-- Sélectionner une colonne --</option>
+                <!-- Colonnes associées à la table sélectionnée -->
+                <option *ngFor="let column of getTableColumns()" [value]="column.columnName">
+                  {{ column.displayName || column.columnName }}
+                </option>
+              </select>
+
+              <!-- Sélection de l'opérateur de comparaison -->
+              <select [(ngModel)]="newCondition.operator" class="form-control operator">
+                <option value="=">=</option>
+                <option value="!=">≠</option>
+                <option value=">">></option>
+                <option value="<"><</option>
+                <option value=">=">≥</option>
+                <option value="<=">≤</option>
+                <option value="LIKE">Contient</option>
+              </select>
+
+              <!-- Saisie de la valeur de comparaison -->
+              <input type="text" [(ngModel)]="newCondition.value" class="form-control" placeholder="Valeur">
+            </div>
+          </div>
+          
+          <!-- Bouton pour ajouter une condition -->
+          <div class="action-buttons">
+            <button class="btn btn-primary" (click)="addCondition()" [disabled]="!canAddCondition()">
+              Ajouter condition
+            </button>
+          </div>
+        </div>
+        
+        <!-- Liste des conditions ajoutées -->
+        <div class="conditions-list">
+          <div class="list-header">
+            <div class="counter">{{ conditions.length }} Condition(s)</div>
+          </div>
+          
+          <div class="list-body">
+            <!-- Affichage de chaque condition avec un bouton de suppression -->
+            <div *ngFor="let condition of conditions; let i = index" class="condition-item">
+              <div class="condition-text">
+                {{ getConditionText(condition) }}
+                <button class="btn-remove" (click)="removeCondition(i)">×</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Boutons pour effacer, appliquer ou annuler les filtres -->
+        <div class="operations">
+          <div class="action-buttons">
+            <button class="btn btn-secondary" (click)="clearFilter()">Effacer tout</button>
+            <button class="btn btn-primary" (click)="applyFilter()">Appliquer</button>
+            <button class="btn btn-secondary" (click)="close()">Annuler</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>

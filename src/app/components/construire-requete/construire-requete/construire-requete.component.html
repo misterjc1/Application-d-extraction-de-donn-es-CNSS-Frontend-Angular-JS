@@ -1,0 +1,207 @@
+<app-header></app-header> <!-- Composant d’en-tête, utile si tu as factorisé l’en-tête en un composant séparé -->
+
+<div class="query-builder-container">
+  
+<!-- Barre latérale -->
+<div class="sidebar" *ngIf="showSidebar">
+  <!-- En-tête avec bouton pour masquer -->
+  <div class="sidebar-header">
+    <button class="sidebar-toggle-btn" (click)="toggleSidebar()">
+      ←
+    </button>
+    <h3>Tables</h3>
+  </div>
+
+  <!-- Liste des tables -->
+  <div cdkDropList [cdkDropListData]="availableTables" 
+       (cdkDropListDropped)="onDropTable($event)" 
+       class="table-list">
+
+    <div *ngFor="let table of availableTables" 
+         cdkDrag 
+         class="table-item"
+         (dblclick)="addTableOnDoubleClick(table)">
+      {{ table.remarks || table.tableName }}
+    </div>
+  </div>
+</div>
+
+<!-- Bouton pour réafficher la sidebar -->
+<button *ngIf="!showSidebar" class="sidebar-show-btn" (click)="toggleSidebar()">
+  →
+</button>
+
+
+
+  <!-- Zone principale de travail pour construire les requêtes -->
+  <div class="workspace">
+    
+    <!-- Partie supérieure avec drop-zone pour glisser les tables -->
+    <div class="workspace-top" #workspaceTop>
+      
+      <!-- Drop zone contenant les tables sélectionnées -->
+      <div class="drop-zone">
+        
+        <!-- SVG utilisé pour afficher les relations entre les tables -->
+        <svg #relationSvg 
+             class="relations-svg" 
+             style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 5;">
+          <defs>
+            <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+                    refX="0" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill="#4285F4" />
+            </marker>
+          </defs>
+        </svg>
+
+        <!-- Affichage des tables sélectionnées -->
+        <div *ngFor="let table of selectedTables"
+             class="table-box"  
+             (click)="highlightConnectedTables(table)"
+             cdkDrag
+             [attr.data-table-name]="table.tableName"
+             (cdkDragMoved)="onTableMove($event, table)"
+             [style.position]="'absolute'"
+             [style.left.px]="table.position?.x"
+             [style.top.px]="table.position?.y">
+
+          <!-- En-tête de chaque table affichée -->
+          <div class="table-header">
+            <span>{{ table.remarks || table.tableName }}</span>
+          </div>
+
+          <!-- Partie centrale avec bouton pour sélectionner toutes les colonnes -->
+          <div class="table-middle">
+            <label>
+              <input type="checkbox" (change)="toggleAllColumns(table, $event)" />
+            </label>
+            <button class="close-btn" (click)="removeTable(table)">✖</button>
+          </div>
+
+          <!-- Partie basse : Affiche les colonnes sélectionnables -->
+          <div class="columns">
+            <!-- Premières colonnes (limitées à 4 affichées directement) -->
+            <label *ngFor="let col of table.columns.slice(0, 4)">
+              <input type="checkbox" [(ngModel)]="col.selected" /> {{ col.displayName }}
+            </label>
+
+            <!-- Scroll pour les colonnes supplémentaires -->
+            <div class="more-columns" *ngIf="table.columns.length > 4">
+              <div class="scroll-container">
+                <label *ngFor="let col of table.columns.slice(4)">
+                  <input type="checkbox" [(ngModel)]="col.selected" /> {{ col.displayName }}
+                </label>
+              </div>
+            </div>
+          </div>
+
+        </div> <!-- fin .table-box -->
+
+      </div> <!-- fin .drop-zone -->
+
+    </div> <!-- fin .workspace-top -->
+
+    <!-- ↧ La poignée pour redimensionner ↧ -->
+    <div class="resizer" (mousedown)="startResizing($event)"></div>
+
+    <div class="resizer" 
+     (mousedown)="startResizing($event)" 
+     (dblclick)="resetResultsHeight()">
+    </div>
+
+
+    <!-- Zone d’actions principales -->
+    <div class="actions-container">
+      <div class="main-actions">
+        
+        <!-- Groupe gauche : Vider, Organiser -->
+        <div class="btn-group left-group" *ngIf="selectedTables.length">
+          <button (click)="clearAll()" class="clear-btn">
+            <span><i class="fa fa-trash"></i> Vider</span>
+          </button>
+    
+          <button (click)="organizeTablesOptimally()" class="organize-btn">
+            <span>Organiser</span>
+          </button>
+        </div>
+    
+        <!-- Groupe centre : Exécuter -->
+        <div class="btn-group center-group" *ngIf="selectedTables.length">
+          <button (click)="executeQuery()" class="execute-btn">
+            <span>Exécuter</span>
+          </button>
+        </div>
+    
+        <!-- Groupe droite : Réinitialiser + Ajouter condition -->
+        <div class="btn-group right-group" *ngIf="selectedTables.length">
+          <button (click)="resetResultsHeight()" class="reset-height-btn" title="Réinitialiser la taille">
+            <i class="fas fa-compress-arrows-alt"></i>
+          </button>
+    
+          <button (click)="openConditionModal()" class="action-btn condition-btn">
+            <span>Ajouter condition</span>
+          </button>
+        </div>
+    
+      </div>
+    </div>
+    
+
+    <!-- Composant modal pour ajouter des conditions -->
+<!-- Composant modal pour ajouter des conditions -->
+<app-condition *ngIf="showConditionModal" 
+               [tables]="selectedTables"
+               [initialConditions]="conditions"  
+               (conditionAdded)="handleConditionAdded($event)"
+               (closeModal)="closeConditionModal()">
+</app-condition>
+
+
+    <!-- Résultats de la requête -->
+    <div class="query-results" *ngIf="queryResults.length"  [ngStyle]="{'height.px': resultsHeight}">
+
+      <!-- Actions liées au tableau de résultats -->
+      <div class="table-actions">
+        <div class="right-actions">
+          <button (click)="exportToPDF()" title="Exporter en PDF">
+            <i class="fas fa-file-pdf"></i>
+          </button>
+          <button (click)="exportToExcel()" title="Exporter en Excel">
+            <i class="fas fa-file-excel"></i>
+          </button>
+          <button (click)="toggleResults()" title="Réduire/Afficher">
+            <i class="fas" [ngClass]="resultsCollapsed ? 'fa-chevron-down' : 'fa-chevron-up'"></i>
+          </button>
+          <button (click)="closeResults()" title="Fermer les résultats">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Contenu des résultats (tableau), repliable -->
+      <div class="result-content" [class.collapsed]="resultsCollapsed">
+        <table>
+          <thead>
+            <tr>
+              <!-- En-têtes générés dynamiquement depuis les résultats -->
+              <th *ngFor="let header of (queryResults.length > 0 ? Object.keys(queryResults[0]) : [])">
+                {{ header }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Lignes de données -->
+            <tr *ngFor="let row of queryResults">
+              <td *ngFor="let header of Object.keys(row)">{{ row[header] }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div> <!-- fin .query-results -->
+
+    <app-footer></app-footer> <!-- Composant de pied de page -->
+
+  </div> <!-- fin .workspace -->
+
+</div> <!-- fin .query-builder-container -->

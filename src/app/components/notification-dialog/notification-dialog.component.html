@@ -1,0 +1,7 @@
+<div class="notification-modal" [ngClass]="data.success ? 'success' : 'error'">
+    <span class="icon">
+      <i class="fa" [ngClass]="data.success ? 'fa-check-circle' : 'fa-times-circle'"></i>
+    </span>
+    <span class="message">{{ data.message }}</span>
+</div>
+  

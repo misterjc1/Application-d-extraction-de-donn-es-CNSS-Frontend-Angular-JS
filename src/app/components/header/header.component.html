@@ -1,0 +1,10 @@
+<div class="header-container">
+    <div class="header-title">CNSS - Extration de données</div>
+  
+    <div class="header-buttons">
+      <button *ngIf="!isLoggedIn" (click)="login()">Connexion</button>
+      <button *ngIf="isLoggedIn" (click)="logout()">Déconnexion</button>
+    </div>
+  </div>
+  
+  
